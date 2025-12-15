@@ -1,6 +1,6 @@
 from __future__ import annotations
 import inspect
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 from pydantic import BaseModel
 
 
@@ -38,7 +38,7 @@ class PydanticArgsBase(BaseModel):
         filtered_args.update({key: value for key, value in kwargs.items() if key in method_params})
         return method_or_class(**filtered_args)
 
-    def save(self, path: str = None) -> None:
+    def save(self, path: Optional[str] = None) -> None:
         if path is None:
             path = "."
         with open(f"{path}/args.json", "w") as f:

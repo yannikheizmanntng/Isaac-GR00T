@@ -26,7 +26,7 @@ class ArgsParser:
             parsed_dict[key] = val
         return parsed_dict
 
-    def _create_args_from_namespace(self, args: argparse.Namespace) -> PydanticArgsBase:
+    def _create_args_from_namespace(self, args: argparse.Namespace):
         args_dict = vars(args)
 
         for alias, field_name in self._get_alias_mapping().items():
@@ -34,7 +34,7 @@ class ArgsParser:
                 args_dict[field_name] = args_dict.pop(alias)
 
         for field_name, field_type in get_type_hints(self._ArgsType).items():
-            if issubclass(field_type, AdditionalArgsBase):
+            if isinstance(field_type, type) and issubclass(field_type, AdditionalArgsBase):
                 args_value = args_dict.get(field_name)
                 if isinstance(args_value, list):
                     parsed_dict = self._parse_additional_args(args_value)
@@ -42,12 +42,12 @@ class ArgsParser:
                 elif isinstance(args_value, field_type):
                     continue
                 elif isinstance(args_value, dict):
-                    args_dict[field_name] = field_type(**parsed_dict)
+                    args_dict[field_name] = field_type(**args_value)
 
         args_dict = {k: v for k, v in args_dict.items() if v is not PydanticUndefined}
         return self._ArgsType.model_validate(args_dict)
 
-    def parse(self) -> PydanticArgsBase:
+    def parse(self):
         parser = argparse.ArgumentParser()
 
         for field_name, field_type in get_type_hints(self._ArgsType).items():
@@ -61,7 +61,7 @@ class ArgsParser:
             if field_info.alias:
                 aliases.append(f"-{field_info.alias}")
 
-            if issubclass(field_type, AdditionalArgsBase):
+            if isinstance(field_type, type) and issubclass(field_type, AdditionalArgsBase):
                 parser.add_argument(
                     *aliases,
                     type=str,
