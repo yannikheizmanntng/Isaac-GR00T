@@ -11,3 +11,11 @@ class UR5_Abs_Delta_4_Cfg(UR5CfgBase):
     action_keys = ["action.delta_robot_arm", "action.delta_gripper"]
     language_keys = ["annotation.human.task_description"]
     state_slices = [(0,6), (6,7)]  
+
+
+class UR5_Abs_Delta_2_Cfg(UR5CfgBase):
+    video_keys = ["video.camera_front", "video.camera_wrist"]
+    state_keys = ["state.robot_arm", "state.gripper"]
+    action_keys = ["action.delta_robot_arm", "action.delta_gripper"]
+    language_keys = ["annotation.human.task_description"]
+    state_slices = [(0,6), (6,7)]  
