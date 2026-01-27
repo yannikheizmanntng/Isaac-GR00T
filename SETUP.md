@@ -39,7 +39,7 @@ ls -d /usr/local/cuda-12.9
 ## 1) Create a fresh venv
 
 ```bash
-cd ~/yannikh/Isaac-GR00T
+cd ~/heizmany/Isaac-GR00T
 
 rm -rf .venv_gr00t
 python3.10 -m venv .venv_gr00t
@@ -197,3 +197,15 @@ python scripts/gr00t_finetune.py 2>&1 | tee finetuning.log
 - **`TORCH_CUDA_ARCH_LIST="12.0"`** (correct format).
 - **`FLASH_ATTN_CUDA_ARCHS="120"`** (FlashAttention’s flag for sm_120).
 - **Build flash-attn with CUDA 12.9 nvcc**, not 11.x/12.4.
+
+
+
+
+rm -rf ~/snap/code/215/.local/share/Trash/files
+
+
+rsync -av --ignore-existing --progress ./Isaac-GR00T/models/ /media/innovation-hacking/flatboi-archive/heizmany/ur5_chess/models/
+
+additionally
+
+pip install python-dotenv

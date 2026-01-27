@@ -104,6 +104,7 @@ class Main:
     @classmethod
     def run(cls, args: Args) -> None:
         cls.startup(args)
+        print(args, flush=True)
         match args.mode:
             case "run_finetune":
                 proc = cls.run_finetune(args)
@@ -118,8 +119,19 @@ if __name__ == "__main__":
 
 
 # start named session running your command + tee log
-# screen -S finetune bash -lc "/home/innovation-hacking/yannikh/Isaac-GR00T/.venv_gr00t/bin/python extension/main.py 2>&1 | tee finetune.log"
+# screen -S finetune bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee finetune.log"
 
+
+"""
+export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json
+
+
+
+
+screen -S server bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee server.log"
+
+screen -S finetune bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee finetune.log"
+"""
 # # detach
 # # Ctrl + a, then d
 
@@ -131,3 +143,6 @@ if __name__ == "__main__":
 
 # # kill session
 # screen -S finetune -X quit
+
+
+# screen -S scheduler bash -lc "./schedule.sh 2>&1 | tee -a logs/scheduler.log"

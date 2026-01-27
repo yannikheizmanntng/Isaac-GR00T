@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import argparse
 from enum import Enum
+from typing import Any, Union, get_args, get_origin, get_type_hints
+
 from pydantic_core import PydanticUndefined
-from typing import Any, get_type_hints
 
 from ._args import PydanticArgsBase, AdditionalArgsBase
 
@@ -10,7 +12,7 @@ from ._args import PydanticArgsBase, AdditionalArgsBase
 class ArgsParser:
     def __init__(self, Args: type[PydanticArgsBase]) -> None:
         self._ArgsType = Args
-        
+
     def _get_alias_mapping(self) -> dict[str, str]:
         alias_mapping = {}
         for field_name, field_type_str in self._ArgsType.__annotations__.items():
@@ -18,13 +20,45 @@ class ArgsParser:
             if field_info.alias:
                 alias_mapping[field_info.alias] = field_name
         return alias_mapping
-    
+
     def _parse_additional_args(self, arg_list: list[str]) -> dict[str, Any]:
-        parsed_dict = {}
+        parsed: dict[str, Any] = {}
         for item in arg_list:
-            key, val = item.split("=")
-            parsed_dict[key] = val
-        return parsed_dict
+            key, val = item.split("=", 1)  # split only once in case val contains '='
+
+            # accumulate duplicates into lists (enables list[str] via repeated keys)
+            if key in parsed:
+                if isinstance(parsed[key], list):
+                    parsed[key].append(val)
+                else:
+                    parsed[key] = [parsed[key], val]
+            else:
+                parsed[key] = val
+
+        return parsed
+
+    def _is_list_type(self, hint: Any) -> bool:
+        origin = get_origin(hint)
+        if origin is list:
+            return True
+        if origin is Union:
+            return any(get_origin(arg) is list for arg in get_args(hint))
+        return False
+
+    def _coerce_additional_args_types(
+        self,
+        additional_model: type[AdditionalArgsBase],
+        parsed: dict[str, Any],
+    ) -> dict[str, Any]:
+        hints = get_type_hints(additional_model)
+
+        # Ensure any fields annotated as list[...] (or Optional[list[...]]) are lists
+        for key, hint in hints.items():
+            if self._is_list_type(hint):
+                if key in parsed and not isinstance(parsed[key], list):
+                    parsed[key] = [parsed[key]]
+
+        return parsed
 
     def _create_args_from_namespace(self, args: argparse.Namespace):
         args_dict = vars(args)
@@ -38,11 +72,13 @@ class ArgsParser:
                 args_value = args_dict.get(field_name)
                 if isinstance(args_value, list):
                     parsed_dict = self._parse_additional_args(args_value)
+                    parsed_dict = self._coerce_additional_args_types(field_type, parsed_dict)
                     args_dict[field_name] = field_type(**parsed_dict)
                 elif isinstance(args_value, field_type):
                     continue
                 elif isinstance(args_value, dict):
-                    args_dict[field_name] = field_type(**args_value)
+                    parsed_dict = self._coerce_additional_args_types(field_type, args_value)
+                    args_dict[field_name] = field_type(**parsed_dict)
 
         args_dict = {k: v for k, v in args_dict.items() if v is not PydanticUndefined}
         return self._ArgsType.model_validate(args_dict)
