@@ -24,7 +24,7 @@ class TrainingArgs(AdditionalArgsBase):
     )
     dataloader_num_workers: int = Field(
         description="Number of workers for data loading per GPU.",
-        default=8,
+        default=4,
     )
     dataloader_prefetch_factor: int = Field(
         description="Prefetch factor for data loading.",
@@ -40,7 +40,7 @@ class TrainingArgs(AdditionalArgsBase):
     )
     save_steps: int = Field(
         description="Number of steps between saving checkpoints.",
-        default=10_000,
+        default=20_000,
     )
     num_gpus: int = Field(
         description="Number of GPUs to use for training (script will switch to torchrun if > 1).",

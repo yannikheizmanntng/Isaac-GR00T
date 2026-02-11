@@ -69,7 +69,10 @@ class Main:
         if not script_path.exists():
             raise FileNotFoundError(f"Could not find finetune script at: {script_path}")
 
-        output_dir = f"{args.model_args.model_output_dir}/{args.model_args.base_model_path.split('/')[-1]}_{time.strftime('%Y%m%d-%H%M%S')}" 
+        if args.model_args.resume_from is None:
+            output_dir = f"{args.model_args.model_output_dir}/{args.model_args.base_model_path.split('/')[-1]}_{time.strftime('%Y%m%d-%H%M%S')}" 
+        else: 
+            output_dir = args.model_args.resume_from
         os.makedirs(output_dir, exist_ok=True)
         args.save(output_dir)
 
@@ -128,9 +131,9 @@ export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json
 
 
 
-screen -S server bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee server.log"
+screen -S server bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee logs/server.log"
 
-screen -S finetune bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee finetune.log"
+screen -S finetune bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee logs/finetune.log"
 """
 # # detach
 # # Ctrl + a, then d

@@ -9,13 +9,17 @@ from extension.utils.argparsing import AdditionalArgsBase
 
 
 class DataConfigOptions(str, Enum):
-    UR5_Abs_Delta_4_Cfg = "UR5_Abs_Delta_4_Cfg"
+        UR5_Abs_Delta_4_Cfg = "UR5_Abs_Delta_4_Cfg"
+        UR5_Abs_Delta_2_Cfg = "UR5_Abs_Delta_2_Cfg"
+        UR5_Abs_Delta_4_Cfg_Det = "UR5_Abs_Delta_4_Cfg_Det"
+        UR5_Abs_Delta_Bin_Grp_4_Cfg = "UR5_Abs_Delta_Bin_Grp_4_Cfg"
+        UR5_Abs_Delta_Abs_Grp_4_Cfg = "UR5_Abs_Delta_Abs_Grp_4_Cfg"
 
 
 class DatasetArgs(AdditionalArgsBase):
-    data_config: DataConfigOptions = Field(
+    data_config: str = Field(
         description="Data configuration to use for the fine-tuning.",
-        default=DataConfigOptions.UR5_Abs_Delta_4_Cfg,
+        default="UR5_Abs_Delta_Abs_Grp_4_Cfg",
     )
     data_configs_path: str = Field(
         description="Path to the file containing the data configuration.",
@@ -37,7 +41,7 @@ class DatasetArgs(AdditionalArgsBase):
     )
     dataset_path: List[str] = Field(
         description="Path(s) to LeRobot dataset directory/directories. All datasets must share the same data config.",
-        default=["/home/innovation-hacking/yannikh/ur5_chess/datasets/dataset_20251215_152938/lerobot"],
+        default=["/home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260209_112625/lerobot"],
     )
     embodiment_tag: str = Field(
         description="Embodiment tag to use for training. Overrides dataset embodiment tag.",
@@ -58,14 +62,14 @@ class DatasetArgs(AdditionalArgsBase):
 
     def _resolve_data_config_string(self) -> str:
         module = self.data_configs_path.replace(".py", "").replace("/", ".")
-        class_name = self.data_config.value
+        class_name = self.data_config
         return f"{module}:{class_name}"
     
     def _safe_name(self, s: str) -> str:
         return "".join(c if c.isalnum() or c in "-_." else "_" for c in s)
 
     def _ensure_output_base(self) -> Path:
-        output_path = f"{self.datasets_output_dir}/{self.data_config.value}"
+        output_path = f"{self.datasets_output_dir}/{self.data_config}"
         base = Path(output_path).expanduser().resolve()
         base.mkdir(parents=True, exist_ok=True)
         return base

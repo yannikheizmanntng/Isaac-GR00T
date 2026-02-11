@@ -62,7 +62,7 @@ class ModelArgs(AdditionalArgsBase):
     )
     model_output_dir: str = Field(
         description="Directory to save model checkpoints.",
-        default="./models",
+        default="/home/innovation-hacking/heizmany/Isaac-GR00T/models",
     )
     lora_args: LoraArgs = Field(
         description="LoRA (Low-Rank Adaptation) related arguments.",
