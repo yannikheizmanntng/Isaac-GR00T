@@ -31,6 +31,12 @@ from gr00t.model.gr00t_n1 import GR00T_N1_5
 
 COMPUTE_DTYPE = torch.bfloat16
 
+# DEBUG
+import os
+import torch
+import torchvision
+from datetime import datetime
+
 
 class BasePolicy(ABC):
     @abstractmethod
@@ -142,6 +148,91 @@ class Gr00tPolicy(BasePolicy):
             Dict[str, Any]: The untransformed action.
         """
         return self._modality_transform.unapply(action)
+    
+    #DEBUG
+    def _debug_dump_images(self, normalized_input: Dict[str, Any]):
+        import os
+        import torch
+        import torchvision
+        from datetime import datetime
+
+        dump_root = "/home/innovation-hacking/heizmany/Isaac-GR00T/debug_images"
+        os.makedirs(dump_root, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+
+        print("\n[DEBUG] === _debug_dump_images (EAGLE) called ===", flush=True)
+        print(f"[DEBUG] normalized_input keys ({len(normalized_input)}): {list(normalized_input.keys())}", flush=True)
+
+        # ---- Find the actual vision tensor used by EAGLE ----
+        if "eagle_pixel_values" not in normalized_input:
+            print("[DEBUG] No 'eagle_pixel_values' found. Nothing to dump.", flush=True)
+            return
+
+        pv = normalized_input["eagle_pixel_values"]
+        print(f"[DEBUG] eagle_pixel_values type: {type(pv)}", flush=True)
+
+        if not isinstance(pv, torch.Tensor):
+            print("[DEBUG] eagle_pixel_values is not a torch.Tensor; cannot dump.", flush=True)
+            return
+
+        x = pv.detach().cpu()
+        print(f"[DEBUG] eagle_pixel_values shape: {tuple(x.shape)} dtype={x.dtype}", flush=True)
+        print(f"[DEBUG] eagle_pixel_values min={x.min().item():.6f} max={x.max().item():.6f} mean={x.mean().item():.6f}", flush=True)
+
+        # Optional metadata
+        if "eagle_image_sizes" in normalized_input:
+            sizes = normalized_input["eagle_image_sizes"]
+            try:
+                sizes_cpu = sizes.detach().cpu() if isinstance(sizes, torch.Tensor) else sizes
+                print(f"[DEBUG] eagle_image_sizes: {sizes_cpu}", flush=True)
+            except Exception as e:
+                print(f"[DEBUG] could not print eagle_image_sizes: {e}", flush=True)
+
+        # ---- Normalize for visualization ----
+        # Many vision pipelines output float tensors already normalized.
+        # We do a robust per-image min/max scaling to [0,1] for saving.
+        #
+        # Now handle expected layouts. Common possibilities:
+        #  (B, C, H, W)
+        #  (B, T, C, H, W)
+        #  (N, C, H, W) where N = number of images (multi-view flattened)
+        #
+        # We'll flatten everything to (N, C, H, W).
+        if x.ndim == 5:
+            B, T, C, H, W = x.shape
+            print(f"[DEBUG] interpreting as (B={B}, T={T}, C={C}, H={H}, W={W})", flush=True)
+            x = x.reshape(B * T, C, H, W)
+        elif x.ndim == 4:
+            N, C, H, W = x.shape
+            print(f"[DEBUG] interpreting as (N={N}, C={C}, H={H}, W={W})", flush=True)
+        else:
+            print(f"[DEBUG] unsupported eagle_pixel_values ndim={x.ndim}; skipping save.", flush=True)
+            return
+
+        # Sanity checks
+        if x.shape[1] not in (1, 3):
+            print(f"[DEBUG] WARNING: channel count is {x.shape[1]} (expected 1 or 3). Saving anyway.", flush=True)
+
+        # Save only first few to avoid flooding disk
+        max_save = min(8, x.shape[0])
+        for i in range(max_save):
+            xi = x[i].clone()
+
+            # Per-image robust scaling
+            denom = (xi.max() - xi.min()).clamp(min=1e-6)
+            xi = (xi - xi.min()) / denom
+
+            #out_path = os.path.join(dump_root, f"{ts}_eagle_pixel_values_{i}.png")
+            out_path = os.path.join(dump_root, f"_eagle_pixel_values_{i}.png")
+            try:
+                torchvision.utils.save_image(xi, out_path)
+                print(f"[DEBUG] SAVED: {out_path}", flush=True)
+            except Exception as e:
+                print(f"[DEBUG] ERROR saving {out_path}: {type(e).__name__}: {e}", flush=True)
+
+        print("[DEBUG] === _debug_dump_images (EAGLE) done ===", flush=True)
+
+
 
     def get_action(self, observations: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -178,6 +269,10 @@ class Gr00tPolicy(BasePolicy):
                 obs_copy[k] = np.array(v)
 
         normalized_input = self.apply_transforms(obs_copy)
+
+        # print("[DEBUG] apply_transforms called; dumping images now", flush=True)
+        # self._debug_dump_images(normalized_input)
+
         normalized_action = self._get_action_from_normalized_input(normalized_input)
         unnormalized_action = self._get_unnormalized_action(normalized_action)
 
