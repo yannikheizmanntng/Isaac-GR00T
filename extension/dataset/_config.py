@@ -33,7 +33,14 @@ class UR5_Abs_Delta_4_Cfg(UR5CfgBase):
 
 
 class UR5_Abs_Delta_2_Cfg(UR5CfgBase):
-    video_keys = ["video.camera_front", "video.camera_wrist"]
+    video_keys = ["video.camera_wrist", "video.camera_front"]
+    state_keys = ["state.robot_arm", "state.gripper"]
+    action_keys = ["action.delta_robot_arm", "action.delta_gripper"]
+    language_keys = ["annotation.human.task_description"]
+    state_slices = [(0,6), (6,7)]  
+
+class TNGUR5_AbsoluteJointState_DeltaJointAction_2Cams(UR5CfgBase):
+    video_keys = ["video.camera_wrist", "video.camera_global_main"]
     state_keys = ["state.robot_arm", "state.gripper"]
     action_keys = ["action.delta_robot_arm", "action.delta_gripper"]
     language_keys = ["annotation.human.task_description"]

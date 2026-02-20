@@ -3,7 +3,6 @@ from pydantic import Field
 from typing import List, Literal
 from enum import Enum
 from pathlib import Path
-import shutil
 
 from extension.utils.argparsing import AdditionalArgsBase
 
@@ -11,6 +10,7 @@ from extension.utils.argparsing import AdditionalArgsBase
 class DataConfigOptions(str, Enum):
         UR5_Abs_Delta_4_Cfg = "UR5_Abs_Delta_4_Cfg"
         UR5_Abs_Delta_2_Cfg = "UR5_Abs_Delta_2_Cfg"
+        TNGUR5_AbsoluteJointState_DeltaJointAction_2Cams = "TNGUR5_AbsoluteJointState_DeltaJointAction_2Cams"
         UR5_Abs_Delta_4_Cfg_Det = "UR5_Abs_Delta_4_Cfg_Det"
         UR5_Abs_Delta_Bin_Grp_4_Cfg = "UR5_Abs_Delta_Bin_Grp_4_Cfg"
         UR5_Abs_Delta_Abs_Grp_4_Cfg = "UR5_Abs_Delta_Abs_Grp_4_Cfg"
@@ -19,7 +19,7 @@ class DataConfigOptions(str, Enum):
 class DatasetArgs(AdditionalArgsBase):
     data_config: str = Field(
         description="Data configuration to use for the fine-tuning.",
-        default="UR5_Abs_Delta_Abs_Grp_4_Cfg",
+        default="UR5_Abs_Delta_2_Cfg",
     )
     data_configs_path: str = Field(
         description="Path to the file containing the data configuration.",
@@ -41,7 +41,7 @@ class DatasetArgs(AdditionalArgsBase):
     )
     dataset_path: List[str] = Field(
         description="Path(s) to LeRobot dataset directory/directories. All datasets must share the same data config.",
-        default=["/home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260209_112625/lerobot"],
+        default=["/home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260212_153227/lerobot"],
     )
     embodiment_tag: str = Field(
         description="Embodiment tag to use for training. Overrides dataset embodiment tag.",
@@ -94,37 +94,24 @@ class DatasetArgs(AdditionalArgsBase):
         )
         return dest
 
-    def _cache_local_dataset(self, src: Path, dest: Path) -> Path:
-        if dest.exists() and any(dest.iterdir()):
-            return dest
-        if not src.exists():
-            raise FileNotFoundError(f"Local dataset path does not exist: {src}")
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src, dest, dirs_exist_ok=True)
-        return dest
-
     def _localize_datasets(self) -> List[str]:
         if not self.dataset_path:
             raise ValueError("dataset_args.dataset_path must contain at least one dataset path")
-        base = self._ensure_output_base()
-        localized: List[str] = []
         if self.dataset_from_hf:
+            base = self._ensure_output_base()
+            localized: List[str] = []
             for repo_id in self.dataset_path:
                 name = self._safe_name(repo_id)
                 dest = base / name
                 local_path = self._download_hf_dataset(repo_id, dest)
                 localized.append(str(local_path))
+            return localized
         else:
             for p in self.dataset_path:
                 src = Path(p).expanduser().resolve()
-                name = self._safe_name(src.name)
-                dest = base / name
-                if src == dest:
-                    localized.append(str(src))
-                    continue
-                cached_path = self._cache_local_dataset(src, dest)
-                localized.append(str(cached_path))
-        return localized
+                if not src.exists():
+                    raise FileNotFoundError(f"Local dataset path does not exist: {src}")
+            return [str(Path(p).expanduser().resolve()) for p in self.dataset_path]
 
     def to_cli(self) -> List[str]:
         localized_paths = self._localize_datasets()

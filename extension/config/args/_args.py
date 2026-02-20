@@ -44,3 +44,10 @@ class Args(PydanticArgsBase):
         argv += ["--data-config", self.dataset_args._resolve_data_config_string()]
         argv += ["--embodiment-tag", self.dataset_args.embodiment_tag]
         return argv
+
+
+"""
+screen -S server bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee logs/server.log"
+
+screen -S finetune bash -lc "/home/innovation-hacking/heizmany/Isaac-GR00T/.venv_ig/bin/python extension/main.py 2>&1 | tee logs/finetune.log"
+"""

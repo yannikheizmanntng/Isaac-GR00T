@@ -40,7 +40,7 @@ class TrainingArgs(AdditionalArgsBase):
     )
     save_steps: int = Field(
         description="Number of steps between saving checkpoints.",
-        default=20_000,
+        default=10_000,
     )
     num_gpus: int = Field(
         description="Number of GPUs to use for training (script will switch to torchrun if > 1).",

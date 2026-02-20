@@ -13,7 +13,7 @@ MAIN_IL="/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/
 run_finetune () {
   local name="$1"
   local num_steps="$2"
-  local dataset_path="$3"   # optional, e.g. /home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260119_194822/lerobot
+  local dataset_path="$3"   
   local resume_from="${4-}" 
 
   local log="/home/innovation-hacking/heizmany/Isaac-GR00T/logs/${name}_$(ts).log"
@@ -77,15 +77,16 @@ wait_screen_gone () {
 
 
 # --------------------------
-# Runs (change only these)
+# Runs 
 # --------------------------
 wait_screen_gone "datagen"
 
-run_finetune "rot_alignment" 100000 "/home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260210_162241/lerobot" 
-wait_screen_gone "rot_alignment"
+run_finetune "pp" 50000 "/home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260218_192632/lerobot" 
+wait_screen_gone "pp"
 
-# run_finetune "same" 100000 "/home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260202_110713/lerobot"
-# wait_screen_gone "same"
+
+run_finetune "tobi_pp" 50000 "/home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260218_192632/lerobot" "/home/innovation-hacking/heizmany/Isaac-GR00T/models/GR00T-N1.5-3B_20260218-160000"
+wait_screen_gone "tobi_pp"
 
 
 echo "[scheduler] all runs complete."
