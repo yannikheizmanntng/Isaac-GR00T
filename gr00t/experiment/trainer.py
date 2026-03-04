@@ -81,6 +81,11 @@ class DualBrainTrainer(transformers.Trainer):
         loss = outputs["loss"]
         return (loss, outputs) if return_outputs else loss
 
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
+        with torch.no_grad():
+            loss = self.compute_loss(model, inputs)
+        return loss.detach().view(1), None, None
+
     def create_optimizer(self):
         """
         Setup the optimizer.
@@ -155,4 +160,6 @@ class DualBrainTrainer(transformers.Trainer):
             self.state = TrainerState.load_from_json(
                 os.path.join(resume_from_checkpoint, TRAINER_STATE_NAME)
             )
+            self.state.eval_steps = self.args.eval_steps
+            self.state.save_steps = self.args.save_steps
         return super().train(resume_from_checkpoint, trial, ignore_keys_for_eval, **kwargs)

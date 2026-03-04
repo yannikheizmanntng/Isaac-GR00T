@@ -21,6 +21,7 @@ class Main:
 
     @classmethod
     def shutdown(cls, args: Args, proc: subprocess.Popen):
+        signal.signal(signal.SIGHUP, lambda *_: signal.raise_signal(signal.SIGINT))
         if args.model_args.push_to_hub:
             api = HfApi(token=HF_TOKEN)
             repo_id = f"{args.model_args.hf_user}/gr00t_{time.strftime('%Y%m%d-%H%M%S')}"

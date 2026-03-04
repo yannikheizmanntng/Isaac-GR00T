@@ -18,7 +18,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 import torch
 import tyro
@@ -65,6 +65,9 @@ class ArgsConfig:
 
     save_steps: int = 1000
     """Number of steps between saving checkpoints."""
+
+    eval_steps: Optional[int] = None
+    """Steps between evaluations. None = defaults to save_steps."""
 
     # Model parameters
     base_model_path: str = "nvidia/GR00T-N1.5-3B"
@@ -134,10 +137,44 @@ class ArgsConfig:
     balance_trajectory_weights: bool = True
     """Used in LeRobotMixtureDataset. If True, sample trajectories within a dataset weighted by their length; otherwise, equal weighting."""
 
+    eval_split: float = 0.10
+    """Fraction of trajectories held out as eval set. 0.0 disables eval."""
+
 
 #####################################################################################
 # Helper functions
 #####################################################################################
+
+
+def _split_dataset_by_trajectories(
+    dataset: LeRobotSingleDataset,
+    eval_fraction: float,
+    seed: int = 42,
+) -> tuple:
+    """
+    Splits a LeRobotSingleDataset into train/eval torch Subsets by episode.
+    Returns (train_subset, eval_subset) where eval contains eval_fraction of trajectories.
+    Splitting is by whole trajectory (episode) to avoid data leakage.
+    """
+    import random
+    from torch.utils.data import Subset
+
+    traj_ids = list(dataset.trajectory_ids)
+    rng = random.Random(seed)
+    rng.shuffle(traj_ids)
+
+    n_eval = max(1, round(len(traj_ids) * eval_fraction))
+    eval_set = set(str(t) for t in traj_ids[:n_eval])
+
+    all_steps = dataset.all_steps
+    train_idx = [i for i, (t, _) in enumerate(all_steps) if str(t) not in eval_set]
+    eval_idx  = [i for i, (t, _) in enumerate(all_steps) if str(t) in eval_set]
+
+    print(
+        f"Dataset split: {len(traj_ids) - n_eval} train trajectories "
+        f"({len(train_idx)} steps) / {n_eval} eval trajectories ({len(eval_idx)} steps)"
+    )
+    return Subset(dataset, train_idx), Subset(dataset, eval_idx)
 
 
 def _copy_partial_action_expert_weights(old_dict, new_dict, old_dim, new_dim):
@@ -239,6 +276,23 @@ def main(config: ArgsConfig):
             },
         )
         print(f"Loaded {len(single_datasets)} datasets, with {config.dataset_path} ")
+
+    eval_dataset = None
+    if config.eval_split > 0.0:
+        if len(config.dataset_path) == 1:
+            train_dataset, eval_dataset = _split_dataset_by_trajectories(
+                train_dataset, config.eval_split
+            )
+        else:
+            from torch.utils.data import ConcatDataset
+            split_singles = [
+                _split_dataset_by_trajectories(ds, config.eval_split)
+                for ds in single_datasets
+            ]
+            train_subsets = [t for t, _ in split_singles]
+            eval_subsets  = [e for _, e in split_singles]
+            train_dataset = ConcatDataset(train_subsets)
+            eval_dataset  = ConcatDataset(eval_subsets)
 
     # ------------ step 2: load model ------------
     # First, get the data config to determine action horizon
@@ -370,11 +424,15 @@ def main(config: ArgsConfig):
         max_steps=config.max_steps,
         save_strategy="steps",
         save_steps=config.save_steps,
-        # evaluation_strategy="no",
         save_total_limit=5,
+        do_eval=config.eval_split > 0.0,
+        eval_strategy="steps" if config.eval_split > 0.0 else "no",
+        eval_steps=(config.eval_steps if config.eval_steps is not None else config.save_steps) if config.eval_split > 0.0 else None,
+        load_best_model_at_end=config.eval_split > 0.0,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         report_to=config.report_to,
         seed=42,
-        do_eval=False,
         ddp_find_unused_parameters=False,
         ddp_bucket_cap_mb=100,
         torch_compile_mode=None,
@@ -383,6 +441,7 @@ def main(config: ArgsConfig):
     # 2.2 run experiment
     experiment = TrainRunner(
         train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         model=model,
         training_args=training_args,
         resume_from_checkpoint=config.resume,

@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 
 import torch
+from torch.utils.data import Subset
 from transformers import TrainingArguments, set_seed
 
 from gr00t.data.dataset import LeRobotMixtureDataset, LeRobotSingleDataset
@@ -36,6 +37,7 @@ class TrainRunner:
         model: GR00T_N1_5,
         training_args: TrainingArguments,
         train_dataset: LeRobotSingleDataset | LeRobotMixtureDataset,
+        eval_dataset=None,
         resume_from_checkpoint: bool = False,
     ):
         self.training_args = training_args
@@ -44,6 +46,7 @@ class TrainRunner:
         self.exp_cfg_dir.mkdir(parents=True, exist_ok=True)
         self.resume_from_checkpoint = resume_from_checkpoint
         self.train_dataset = train_dataset
+        self.eval_dataset = eval_dataset
         # Set up training arguments
         training_args.run_name = (
             training_args.output_dir.split("/")[-1]
@@ -62,6 +65,7 @@ class TrainRunner:
             model=model,
             training_args=training_args,
             train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
             data_collator=data_collator,
             compute_dtype=compute_dtype,
         )
@@ -74,19 +78,20 @@ class TrainRunner:
             if os.path.exists(self.exp_cfg_dir / "metadata.json"):
                 with open(self.exp_cfg_dir / "metadata.json", "r") as f:
                     metadata_json = json.load(f)
-            if isinstance(train_dataset, LeRobotSingleDataset):
+            underlying = train_dataset.dataset if isinstance(train_dataset, Subset) else train_dataset
+            if isinstance(underlying, LeRobotSingleDataset):
                 metadata_json.update(
-                    {train_dataset.tag: train_dataset.metadata.model_dump(mode="json")}
+                    {underlying.tag: underlying.metadata.model_dump(mode="json")}
                 )
-            elif isinstance(train_dataset, LeRobotMixtureDataset):
+            elif isinstance(underlying, LeRobotMixtureDataset):
                 metadata_json.update(
                     {
                         tag: metadata.model_dump(mode="json")
-                        for tag, metadata in train_dataset.merged_metadata.items()
+                        for tag, metadata in underlying.merged_metadata.items()
                     }
                 )
             else:
-                raise ValueError(f"Invalid dataset type: {type(train_dataset)}")
+                print(f"Warning: cannot write metadata for dataset type: {type(train_dataset)}")
             with open(self.exp_cfg_dir / "metadata.json", "w") as f:
                 json.dump(metadata_json, f, indent=4)
 
@@ -127,6 +132,7 @@ class TrainRunner:
         train_dataset,
         data_collator,
         compute_dtype,
+        eval_dataset=None,
         global_batch_size=None,
     ):
         # Set the gradient accumulation steps if global_batch_size is provided
@@ -144,6 +150,7 @@ class TrainRunner:
             model=model,
             args=training_args,
             train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
             data_collator=data_collator,
             compute_dtype=compute_dtype,
         )
