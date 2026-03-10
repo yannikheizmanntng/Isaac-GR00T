@@ -18,7 +18,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import List, Literal
 
 import torch
 import tyro
@@ -66,8 +66,6 @@ class ArgsConfig:
     save_steps: int = 1000
     """Number of steps between saving checkpoints."""
 
-    eval_steps: Optional[int] = None
-    """Steps between evaluations. None = defaults to save_steps."""
 
     # Model parameters
     base_model_path: str = "nvidia/GR00T-N1.5-3B"
@@ -427,7 +425,7 @@ def main(config: ArgsConfig):
         save_total_limit=5,
         do_eval=config.eval_split > 0.0,
         eval_strategy="steps" if config.eval_split > 0.0 else "no",
-        eval_steps=(config.eval_steps if config.eval_steps is not None else config.save_steps) if config.eval_split > 0.0 else None,
+        eval_steps=config.save_steps if config.eval_split > 0.0 else None,
         load_best_model_at_end=config.eval_split > 0.0,
         metric_for_best_model="eval_loss",
         greater_is_better=False,

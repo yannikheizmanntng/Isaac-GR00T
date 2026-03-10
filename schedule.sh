@@ -12,24 +12,31 @@ MAIN_IL="/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/
 
 run_finetune () {
   local name="$1"
-  local num_steps="$2"
-  local dataset_path="$3"   
-  local resume_from="${4-}" 
+  local tune_visual="$2"
+  local num_steps="$3"
+  local dataset_path="$4"
+  local resume_from="${5-}"
 
   local log="/home/innovation-hacking/heizmany/Isaac-GR00T/logs/${name}_$(ts).log"
 
-  local resume_arg=""
+  local model_args="tune_visual=$tune_visual"
   if [[ -n "$resume_from" ]]; then
-    resume_arg="--model_args resume_from=$resume_from"
+    model_args+=" resume_from=$resume_from"
   fi
+
+  local dataset_args_items=""
+  IFS=',' read -ra dataset_paths <<< "$dataset_path"
+  for p in "${dataset_paths[@]}"; do
+    dataset_args_items+="dataset_path=${p} "
+  done
 
   echo "[scheduler] launching ${name}"
   screen -dmS "$name" bash -lc "
     $PY_IG -u $MAIN_IG \
       --mode run_finetune \
-      $resume_arg \
+      --model_args $model_args \
       --training_args max_steps=$num_steps \
-      --dataset_args dataset_path=$dataset_path \
+      --dataset_args $dataset_args_items \
     2>&1 | tee '${log}'
   "
 }
@@ -147,15 +154,32 @@ BASE="/home/innovation-hacking/heizmany/Isaac-GR00T/models"
 # Each benchmark screen waits inside Python until its inference server screen appears.
 # Inference servers use bash-level sequencing: the scheduler creates each one at the right time.
 
-run_benchmark "labels_ia1a"  "ShortFieldIdHomoBlack" "$BASE/GR00T-N1.5-3B_20260304-180000" "labels"
-run_benchmark "labels_ia1b"  "ShortFieldIdHomoMixed" "$BASE/GR00T-N1.5-3B_20260304-180000" "labels" "labels_ia1a"
+# run_benchmark "a_ia1a"  "ShortFieldIdHomoBlack" "$BASE/GR00T-N1.5-3B_20260304-200000" "inf_a"
+# run_benchmark "a_ia1b"  "ShortFieldIdHomoMixed" "$BASE/GR00T-N1.5-3B_20260304-200000" "inf_a" "a_ia1a"
 
-run_inference_server "labels" "$BASE/GR00T-N1.5-3B_20260304-180000"
-wait_screen_gone "labels_ia1b"
-kill_screen "labels" 60
+# run_benchmark "b_ia1a"  "ShortFieldIdHomoBlack" "$BASE/GR00T-N1.5-3B_20260308-101133" "inf_b"
+# run_benchmark "b_ia1b"  "ShortFieldIdHomoMixed" "$BASE/GR00T-N1.5-3B_20260308-101133" "inf_b" "b_ia1a"
+
+# run_inference_server "inf_a" "$BASE/GR00T-N1.5-3B_20260304-200000"
+# wait_screen_gone "a_ia1b"
+# kill_screen "inf_a" 60
+
+# run_inference_server "inf_b" "$BASE/GR00T-N1.5-3B_20260308-101133"
+# wait_screen_gone "b_ia1a"
+# kill_screen "inf_b" 60
+
+wait_screen_gone "datagen"
+
+run_finetune "no_target" false 40000 \
+ "/home/innovation-hacking/heizmany/ur5_chess/datasets/dataset_20260309_160246/lerobot" \
+ "$BASE/GR00T-N1.5-3B_20260309-160000"
+wait_screen_gone "no_target"
+
+# run_inference_server "labels_inf" "$BASE/GR00T-N1.5-3B_20260304-180000"
+# wait_screen_gone "labels_ia1b"
+# kill_screen "labels_inf" 60
 
 echo "[scheduler] all runs complete."
-
 
 
 # """

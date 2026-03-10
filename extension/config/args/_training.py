@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic import Field
-from typing import Literal, List, Optional
+from typing import Literal, List
 
 from extension.utils.argparsing import AdditionalArgsBase
 
@@ -40,11 +40,7 @@ class TrainingArgs(AdditionalArgsBase):
     )
     save_steps: int = Field(
         description="Number of steps between saving checkpoints.",
-        default=5000,
-    )
-    eval_steps: Optional[int] = Field(
-        description="Steps between evaluations. None = use save_steps.",
-        default=2000,
+        default=10000,
     )
     num_gpus: int = Field(
         description="Number of GPUs to use for training (script will switch to torchrun if > 1).",
@@ -70,7 +66,6 @@ class TrainingArgs(AdditionalArgsBase):
             "--gradient-accumulation-steps", str(self.gradient_accumulation_steps),
             "--max-steps", str(self.max_steps),
             "--save-steps", str(self.save_steps),
-            *([  "--eval-steps", str(self.eval_steps)] if self.eval_steps is not None else []),
             "--num-gpus", str(self.num_gpus),
             "--report-to", self.report_to,
             "--eval-split", str(self.eval_split),

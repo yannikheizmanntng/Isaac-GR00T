@@ -162,4 +162,6 @@ class DualBrainTrainer(transformers.Trainer):
             )
             self.state.eval_steps = self.args.eval_steps
             self.state.save_steps = self.args.save_steps
+            # Write back so _inner_training_loop doesn't reload stale values from disk
+            self.state.save_to_json(os.path.join(resume_from_checkpoint, TRAINER_STATE_NAME))
         return super().train(resume_from_checkpoint, trial, ignore_keys_for_eval, **kwargs)
