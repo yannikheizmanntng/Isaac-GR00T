@@ -4,8 +4,8 @@
 REMOTE_HOST="innovation-hacking@bigboi.ihack.host"
 REMOTE_JOB_SERVER="http://bigboi.ihack.host:8765"
 REMOTE_INFERENCE_HOST="bigboi.ihack.host"
-REMOTE_MODELS="/home/innovation-hacking/heizmany/models"
-REMOTE_DATASETS="/home/innovation-hacking/heizmany/datasets"
+REMOTE_MODELS="/workspace/models"
+REMOTE_DATASETS="/workspace/datasets"
 
 
 _remote_run () {
