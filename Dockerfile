@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-cudnn9-devel-ubuntu22.04
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONPATH=/workspace:${PYTHONPATH}
 
@@ -39,9 +39,6 @@ RUN python3.10 -m pip install \
 
 # All remaining deps — torch is already at the right version so pip skips it
 RUN python3.10 -m pip install ".[base]"
-
-# Fix flash-attn
-RUN python3.10 -m pip install flash_attn==2.7.1.post4 -U --force-reinstall
 
 # Replace headless OpenCV with the GL-enabled build
 RUN python3.10 -m pip uninstall -y opencv-python opencv-python-headless || true && \
