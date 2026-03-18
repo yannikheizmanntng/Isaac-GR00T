@@ -7,7 +7,7 @@ from extension.utils.argparsing import AdditionalArgsBase
 
 class InferenceArgs(AdditionalArgsBase):
     model_path: str = Field(
-        default="/home/innovation-hacking/heizmany/Isaac-GR00T/models/GR00T-N1.5-3B_20260308-101133",
+        default="/home/innovation-hacking/heizmany/Isaac-GR00T/models/GR00T-N1.5-3B_20260316-110000/checkpoint-80000",
         description="Path to the model checkpoint directory.",
     )
     port: int = Field(

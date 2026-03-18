@@ -24,7 +24,11 @@ class TrainingArgs(AdditionalArgsBase):
     )
     dataloader_num_workers: int = Field(
         description="Number of workers for data loading per GPU.",
-        default=4,
+        default=2,
+    )
+    dataloader_persistent_workers: bool = Field(
+        description="Keep dataloader workers alive across epochs. Disable to reset worker RAM each epoch.",
+        default=False,
     )
     dataloader_prefetch_factor: int = Field(
         description="Prefetch factor for data loading.",
@@ -40,7 +44,7 @@ class TrainingArgs(AdditionalArgsBase):
     )
     save_steps: int = Field(
         description="Number of steps between saving checkpoints.",
-        default=10000,
+        default=20000,
     )
     num_gpus: int = Field(
         description="Number of GPUs to use for training (script will switch to torchrun if > 1).",
@@ -62,6 +66,7 @@ class TrainingArgs(AdditionalArgsBase):
             "--warmup-ratio", str(self.warmup_ratio),
             "--batch-size", str(self.batch_size),
             "--dataloader-num-workers", str(self.dataloader_num_workers),
+            "--dataloader-persistent-workers" if self.dataloader_persistent_workers else "--no-dataloader-persistent-workers",
             "--dataloader-prefetch-factor", str(self.dataloader_prefetch_factor),
             "--gradient-accumulation-steps", str(self.gradient_accumulation_steps),
             "--max-steps", str(self.max_steps),

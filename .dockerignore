@@ -1,0 +1,48 @@
+# Version control
+.git/
+.gitignore
+
+# Virtual environments
+.venv/
+.venv_ig/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+
+# Large data — mount as volumes at runtime
+demo_data/
+datasets/
+models/
+
+# Training outputs
+outputs/
+logs/
+wandb/
+runs/
+
+# Model checkpoints and weights
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.engine
+*.trt
+
+# Secrets — never bake into the image
+.env
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# macOS
+.DS_Store

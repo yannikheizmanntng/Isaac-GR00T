@@ -1,0 +1,21 @@
+services:
+  job_server:
+    build: .
+    image: gr00t-job-server:latest
+    runtime: nvidia
+    env_file: .env
+    ports:
+      - "8765:8765"
+      - "5555:5555"
+    volumes:
+      - ./models:/workspace/models
+      - ./datasets:/workspace/datasets
+      - ./logs:/workspace/logs
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

@@ -111,6 +111,10 @@ class ArgsConfig:
     dataloader_num_workers: int = 12
     """Number of workers for data loading per GPU."""
 
+    dataloader_persistent_workers: bool = False
+    """Keep dataloader workers alive across epochs. Faster epoch transitions but workers accumulate
+    memory fragmentation over long runs, causing RAM growth. Disable to reset worker memory each epoch."""
+
     gradient_accumulation_steps: int = 1
     """Gradient accumulation steps for training."""
 
@@ -408,7 +412,7 @@ def main(config: ArgsConfig):
         dataloader_num_workers=config.dataloader_num_workers,
         dataloader_pin_memory=False,
         dataloader_prefetch_factor=config.dataloader_prefetch_factor,
-        dataloader_persistent_workers=config.dataloader_num_workers > 0,
+        dataloader_persistent_workers=config.dataloader_persistent_workers,
         optim="adamw_torch",
         adam_beta1=0.95,
         adam_beta2=0.999,
