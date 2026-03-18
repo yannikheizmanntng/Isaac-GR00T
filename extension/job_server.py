@@ -49,11 +49,15 @@ def _launch(name: str, args: list[str], log: Path) -> None:
 
 class _JobHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
-        match = re.fullmatch(r"/screen_gone/(.+)", self.path)
-        if match:
-            self._respond(200, _job_status(match.group(1)))
+        if self.path == "/jobs":
+            jobs = {name: "running" for name, proc in list(_jobs.items()) if proc.poll() is None}
+            self._respond(200, {"jobs": jobs})
         else:
-            self._respond(404, {"error": "not found"})
+            match = re.fullmatch(r"/screen_gone/(.+)", self.path)
+            if match:
+                self._respond(200, _job_status(match.group(1)))
+            else:
+                self._respond(404, {"error": "not found"})
 
     def do_POST(self) -> None:
         length = int(self.headers.get("Content-Length", 0))

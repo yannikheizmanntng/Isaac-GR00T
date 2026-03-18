@@ -27,3 +27,5 @@ echo "[scheduler] all runs complete."
 
 
 # screen -S scheduler bash -lc "./schedule.sh 2>&1 | tee logs/scheduler.log"
+
+# curl http://localhost:8765/jobs  
