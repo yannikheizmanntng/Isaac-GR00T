@@ -30,15 +30,14 @@ RUN mkdir -p gr00t && \
     printf 'VERSION = "0.0.0"\n' > gr00t/version.py && \
     touch gr00t/__init__.py gr00t/py.typed
 
-# Heavy torch stack — separate layer, rarely changes
-RUN python3.10 -m pip install \
+# Install all deps, then re-pin torch to the version that supports the target GPU.
+# pyproject.toml may pin an older torch — the explicit upgrade below always wins.
+RUN python3.10 -m pip install ".[base]" numpy==1.26.4
+
+RUN python3.10 -m pip install --upgrade \
     torch==2.7.0 \
     torchvision==0.22.0 \
-    torchaudio==2.7.0 \
-    numpy==1.26.4
-
-# All remaining deps — torch is already at the right version so pip skips it
-RUN python3.10 -m pip install ".[base]"
+    torchaudio==2.7.0
 
 # Replace headless OpenCV with the GL-enabled build
 RUN python3.10 -m pip uninstall -y opencv-python opencv-python-headless || true && \
