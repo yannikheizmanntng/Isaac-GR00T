@@ -19,7 +19,7 @@ MODELS="/home/innovation-hacking/heizmany/Isaac-GR00T/models"
 # Runs
 # --------------------------
 
-run_finetune_remote "test_finetune" false 80000 "$REMOTE_DATASETS/dataset_20260311_131933/lerobot"
+run_finetune_remote "test_finetune" false 80000 "$REMOTE_DATASETS/dataset_20260311_131933/lerobot" "" "test_finetune_run"
 wait_screen_gone_remote "test_finetune"
 
 

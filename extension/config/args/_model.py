@@ -64,6 +64,10 @@ class ModelArgs(AdditionalArgsBase):
         description="Directory to save model checkpoints.",
         default="/workspace/models",
     )
+    output_name: Optional[str] = Field(
+        description="Name of the output folder inside model_output_dir. Defaults to a timestamped name.",
+        default=None,
+    )
     lora_args: LoraArgs = Field(
         description="LoRA (Low-Rank Adaptation) related arguments.",
         default=LoraArgs(),
@@ -90,8 +94,8 @@ class ModelArgs(AdditionalArgsBase):
             argv += ["--output-dir", self.resume_from]
             argv += ["--resume"]
         else:
-            output_dir = f"{self.model_output_dir}/{self.base_model_path.split('/')[-1]}_{time.strftime('%Y%m%d-%H%M%S')}" 
-            argv += ["--output-dir", output_dir]
+            folder = self.output_name if self.output_name else f"{self.base_model_path.split('/')[-1]}_{time.strftime('%Y%m%d-%H%M%S')}"
+            argv += ["--output-dir", f"{self.model_output_dir}/{folder}"]
 
         argv += self.lora_args.to_cli()
         return argv

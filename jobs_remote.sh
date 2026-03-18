@@ -23,9 +23,11 @@ run_finetune_remote () {
   local num_steps="$3"
   local dataset_path="$4"
   local resume_from="${5-}"
+  local output_name="${6-}"
 
   local model_args="tune_visual=$tune_visual"
   [[ -n "$resume_from" ]] && model_args+=" resume_from=$resume_from"
+  [[ -n "$output_name" ]] && model_args+=" output_name=$output_name"
 
   local dataset_args_items=""
   IFS=',' read -ra dataset_paths <<< "$dataset_path"

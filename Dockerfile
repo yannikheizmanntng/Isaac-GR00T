@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONPATH=/workspace:${PYTHONPATH}
 
@@ -32,9 +32,9 @@ RUN mkdir -p gr00t && \
 
 # Heavy torch stack — separate layer, rarely changes
 RUN python3.10 -m pip install \
-    torch==2.5.1 \
-    torchvision==0.20.1 \
-    torchaudio==2.5.1 \
+    torch==2.7.0 \
+    torchvision==0.22.0 \
+    torchaudio==2.7.0 \
     numpy==1.26.4
 
 # All remaining deps — torch is already at the right version so pip skips it
@@ -47,7 +47,9 @@ RUN python3.10 -m pip uninstall -y opencv-python opencv-python-headless || true 
 RUN python3.10 -m pip install "accelerate>=0.26.0" python-dotenv packaging ninja
 
 # flash_attn has no pre-built wheels on PyPI — must build from source with torch visible
-RUN python3.10 -m pip install flash_attn==2.7.1.post4 --no-build-isolation
+# TORCH_CUDA_ARCH_LIST must include the target GPU's compute capability (12.0 = Blackwell)
+ENV TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0 10.0 12.0"
+RUN python3.10 -m pip install flash_attn --no-build-isolation
 
 # Copy source — this layer is invalidated on every code change
 COPY gr00t /workspace/gr00t
