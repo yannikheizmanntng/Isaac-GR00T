@@ -11,6 +11,7 @@ services:
       - /home/innovation-hacking/heizmany/models:/workspace/models
       - /home/innovation-hacking/heizmany/datasets:/workspace/datasets
       - ./logs:/workspace/logs
+    user: "${UID:-1000}:${GID:-1000}"
     restart: unless-stopped
     deploy:
       resources:
