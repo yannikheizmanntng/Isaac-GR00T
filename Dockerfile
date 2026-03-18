@@ -37,7 +37,8 @@ RUN python3.10 -m pip install ".[base]" numpy==1.26.4
 RUN python3.10 -m pip install --upgrade \
     torch==2.7.0 \
     torchvision==0.22.0 \
-    torchaudio==2.7.0
+    torchaudio==2.7.0 \
+    --index-url https://download.pytorch.org/whl/cu128
 
 # Replace headless OpenCV with the GL-enabled build
 RUN python3.10 -m pip uninstall -y opencv-python opencv-python-headless || true && \
