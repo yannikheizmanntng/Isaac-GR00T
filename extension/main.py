@@ -114,7 +114,8 @@ class Main:
                 proc = cls.run_finetune(args)
             case "start_inference_server":
                 proc = cls.start_inference_server(args)
-        cls.shutdown(args, proc)
+        returncode = cls.shutdown(args, proc)
+        sys.exit(returncode)
 
 
 if __name__ == "__main__":

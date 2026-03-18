@@ -44,7 +44,10 @@ RUN python3.10 -m pip install ".[base]"
 RUN python3.10 -m pip uninstall -y opencv-python opencv-python-headless || true && \
     python3.10 -m pip install opencv-python==4.8.0.74
 
-RUN python3.10 -m pip install "accelerate>=0.26.0" python-dotenv
+RUN python3.10 -m pip install "accelerate>=0.26.0" python-dotenv packaging ninja
+
+# flash_attn has no pre-built wheels on PyPI — must build from source with torch visible
+RUN python3.10 -m pip install flash_attn==2.7.1.post4 --no-build-isolation
 
 # Copy source — this layer is invalidated on every code change
 COPY gr00t /workspace/gr00t
