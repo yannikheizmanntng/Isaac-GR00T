@@ -18,7 +18,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN python3.10 -m pip install --upgrade pip setuptools wheel
-RUN python3.10 -m pip install gpustat wandb==0.19.0
+RUN python3.10 -m pip install gpustat wandb==0.18.0
 
 WORKDIR /workspace
 
@@ -44,7 +44,7 @@ RUN python3.10 -m pip install ".[base]"
 RUN python3.10 -m pip uninstall -y opencv-python opencv-python-headless || true && \
     python3.10 -m pip install opencv-python==4.8.0.74
 
-RUN python3.10 -m pip install "accelerate>=0.26.0"
+RUN python3.10 -m pip install "accelerate>=0.26.0" python-dotenv
 
 # Copy source — this layer is invalidated on every code change
 COPY gr00t /workspace/gr00t

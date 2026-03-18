@@ -24,14 +24,15 @@ def _ts() -> str:
     return datetime.now().strftime("%Y%m%d-%H%M%S")
 
 
-def _is_running(name: str) -> bool:
+def _job_status(name: str) -> dict:
     proc = _jobs.get(name)
     if proc is None:
-        return False
-    if proc.poll() is not None:
+        return {"gone": True, "exit_code": None}
+    exit_code = proc.poll()
+    if exit_code is not None:
         del _jobs[name]
-        return False
-    return True
+        return {"gone": True, "exit_code": exit_code}
+    return {"gone": False, "exit_code": None}
 
 
 def _launch(name: str, args: list[str], log: Path) -> None:
@@ -50,7 +51,7 @@ class _JobHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         match = re.fullmatch(r"/screen_gone/(.+)", self.path)
         if match:
-            self._respond(200, {"gone": not _is_running(match.group(1))})
+            self._respond(200, _job_status(match.group(1)))
         else:
             self._respond(404, {"error": "not found"})
 

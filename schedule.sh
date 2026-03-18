@@ -14,17 +14,13 @@ mkdir -p "$IG_LOGS"
 EXPERIMENT_1="/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/evaluation/benchmarks/eval/experiments/experiment_1"
 DATASETS="/home/innovation-hacking/heizmany/ur5_chess/datasets"
 MODELS="/home/innovation-hacking/heizmany/Isaac-GR00T/models"
-REMOTE_DATASETS="/home/innovation-hacking/heizmany/datasets"
-REMOTE_MODELS="/home/innovation-hacking/heizmany/models"
 
 # --------------------------
 # Runs
 # --------------------------
 
-run_datagen "datagen_a_exp1" "$EXPERIMENT_1/eval_a_short_experiment_1.yaml" "$DATASETS/eval_a_short_experiment_1"
-# run_datagen "datagen_b_exp1" "$EXPERIMENT_1/eval_b_short_experiment_1.yaml" "$DATASETS/eval_b_short_experiment_1" "datagen_a_exp1"
-# run_datagen "datagen_d_exp1" "$EXPERIMENT_1/eval_d_short_experiment_1.yaml" "$DATASETS/eval_d_short_experiment_1" "datagen_b_exp1"
-wait_screen_gone "datagen_a_exp1"
+run_finetune_remote "test_finetune" false 80000 "$REMOTE_DATASETS/dataset_20260311_131933/lerobot"
+wait_screen_gone_remote "test_finetune"
 
 
 echo "[scheduler] all runs complete."

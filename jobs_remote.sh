@@ -51,11 +51,26 @@ run_inference_server_remote () {
 
 wait_screen_gone_remote () {
   local name="$1"
-  echo "[scheduler] waiting for '${name}' to finish on remote..."
-  while ! curl -sf "$REMOTE_JOB_SERVER/screen_gone/$name" | grep -q '"gone":true'; do
+  echo "[scheduler] $(date '+%H:%M:%S') waiting for '${name}' to finish on remote..."
+  while true; do
+    local response gone exit_code
+    response=$(curl -sf "$REMOTE_JOB_SERVER/screen_gone/$name" 2>&1) || {
+      echo "[scheduler] $(date '+%H:%M:%S') WARNING: could not reach job server, retrying..."
+      sleep 30
+      continue
+    }
+    gone=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['gone'])")
+    if [[ "$gone" == "True" ]]; then
+      exit_code=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin).get('exit_code','?'))")
+      if [[ "$exit_code" == "0" ]]; then
+        echo "[scheduler] $(date '+%H:%M:%S') '${name}' finished successfully."
+      else
+        echo "[scheduler] $(date '+%H:%M:%S') '${name}' FAILED (exit ${exit_code}) — check remote logs."
+      fi
+      break
+    fi
     sleep 30
   done
-  echo "[scheduler] '$name' finished on remote."
 }
 
 
