@@ -8,8 +8,8 @@ services:
       - "8765:8765"
       - "5555:5555"
     volumes:
-      - ./models:/workspace/models
-      - ./datasets:/workspace/datasets
+      - /home/innovation-hacking/heizmany/models:/workspace/models
+      - /home/innovation-hacking/heizmany/datasets:/workspace/datasets
       - ./logs:/workspace/logs
     restart: unless-stopped
     deploy:

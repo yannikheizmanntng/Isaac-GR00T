@@ -114,6 +114,7 @@ run_benchmark () {
       $wait_arg \
       $wait_gone_arg \
       --benchmark_args benchmark=$benchmark model_path=$model_path experiment_path=$experiment_path \
+      --inference_args host=$REMOTE_INFERENCE_HOST \
     2>&1 | tee '$log'
   "
 }
