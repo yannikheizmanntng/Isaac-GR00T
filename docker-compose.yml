@@ -7,10 +7,13 @@ services:
     ports:
       - "8765:8765"
       - "5555:5555"
+    environment:
+      - HF_HOME=/workspace/cache/huggingface
     volumes:
       - /home/innovation-hacking/heizmany/models:/workspace/models
       - /home/innovation-hacking/heizmany/datasets:/workspace/datasets
       - ./logs:/workspace/logs
+      - ./cache:/workspace/cache
     user: "${UID:-1000}:${GID:-1000}"
     restart: unless-stopped
     deploy:

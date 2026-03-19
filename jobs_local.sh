@@ -19,12 +19,16 @@ run_finetune () {
   local dataset_path="$4"
   local resume_from="${5-}"
   local output_name="${6-}"
+  local training_args_extra="${7-}"
 
   local log="$IG_LOGS/${name}_$(ts).log"
 
   local model_args="tune_visual=$tune_visual"
   [[ -n "$resume_from" ]] && model_args+=" resume_from=$resume_from"
   [[ -n "$output_name" ]] && model_args+=" output_name=$output_name"
+
+  local training_args="max_steps=$num_steps"
+  [[ -n "$training_args_extra" ]] && training_args+=" $training_args_extra"
 
   local dataset_args_items=""
   IFS=',' read -ra dataset_paths <<< "$dataset_path"
@@ -37,7 +41,7 @@ run_finetune () {
     $PY_IG -u $MAIN_IG \
       --mode run_finetune \
       --model_args $model_args \
-      --training_args max_steps=$num_steps \
+      --training_args $training_args \
       --dataset_args $dataset_args_items \
     2>&1 | tee '${log}'
   "
@@ -46,9 +50,8 @@ run_finetune () {
 
 run_datagen () {
   local name="$1"
-  local dataset_cfg_yaml="$2"
-  local output_path="$3"
-  local wait_for_gone="${4-}"
+  local output_path="$2"
+  local wait_for_gone="${3-}"
 
   local log="$IG_LOGS/${name}_$(ts).log"
   local venv_activate="/home/innovation-hacking/heizmany/ur5_chess/.venv/bin/activate"
@@ -65,8 +68,7 @@ run_datagen () {
     python -u $MAIN_IL \
       --mode record_dataset \
       $wait_gone_arg \
-      --sim_args dataset_cfg_yaml=$dataset_cfg_yaml gen_data_cfg_first=False \
-      --rec_args dataset_output_path=$output_path keep_hdf5=True \
+      --rec_args dataset_output_path=$output_path
     2>&1 | tee '$log'
   "
 }
@@ -124,9 +126,10 @@ run_benchmark () {
 
 wait_screen_gone () {
   local name="$1"
+  local pattern="\.${name}[^[:alnum:]_]"
   echo "[scheduler] waiting for screen session '$name' to finish..."
-  while screen -list | grep -q "\.${name}[[:space:]]"; do
-    if screen -list | grep "\.${name}[[:space:]]" | grep -qi "dead"; then
+  while screen -list | grep -q "$pattern"; do
+    if screen -list | grep "$pattern" | grep -qi "dead"; then
       echo "[scheduler] screen '$name' is dead (process crashed), wiping and treating as finished."
       screen -wipe > /dev/null 2>&1
       break
