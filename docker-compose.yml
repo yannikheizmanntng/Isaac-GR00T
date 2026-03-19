@@ -15,6 +15,7 @@ services:
       - ./logs:/workspace/logs
       - ./cache:/workspace/cache
     user: "${UID:-1000}:${GID:-1000}"
+    shm_size: "16gb"
     restart: unless-stopped
     deploy:
       resources:
