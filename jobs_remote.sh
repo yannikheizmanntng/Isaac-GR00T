@@ -21,14 +21,20 @@ wait_for_job_server () {
 _remote_run () {
   local name="$1"
   local args_str="$2"
-  local response
-  until response=$(curl -sf -X POST "$REMOTE_JOB_SERVER/run" \
-    -H "Content-Type: application/json" \
-    -d "{\"name\":\"$name\",\"args_str\":\"$args_str\"}" 2>&1); do
-    echo "[scheduler] $(date '+%H:%M:%S') ERROR: failed to post job '$name', retrying in 30s... ($response)"
+  local response http_code
+  while true; do
+    response=$(curl -s -o /tmp/_remote_run_body -w "%{http_code}" -X POST "$REMOTE_JOB_SERVER/run" \
+      -H "Content-Type: application/json" \
+      -d "{\"name\":\"$name\",\"args_str\":\"$args_str\"}" 2>&1)
+    http_code="$response"
+    response=$(cat /tmp/_remote_run_body)
+    if [[ "$http_code" == "200" || "$http_code" == "409" ]]; then
+      echo "$response"
+      return 0
+    fi
+    echo "[scheduler] $(date '+%H:%M:%S') ERROR: failed to post job '$name' (HTTP $http_code), retrying in 30s... ($response)"
     sleep 30
   done
-  echo "$response"
 }
 
 

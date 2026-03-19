@@ -72,6 +72,11 @@ class _JobHandler(BaseHTTPRequestHandler):
 
     def _handle_run(self, body: dict) -> None:
         name: str = body["name"]
+        proc = _jobs.get(name)
+        if proc is not None and proc.poll() is None:
+            print(f"[job_server] rejected '{name}' — already running (pid {proc.pid})")
+            self._respond(409, {"status": "already_running", "name": name})
+            return
         args = shlex.split(body["args_str"])
         log = LOGS_DIR / f"{name}_{_ts()}.log"
         _launch(name, args, log)

@@ -31,29 +31,29 @@ wait_screen_gone "datagen"
 # Step 2: start finetune_1 (dataset_1, resume from model_1)
 # --------------------------
 
-wait_for_job_server
-run_finetune_remote "finetune_1" false 80000 \
-  "$REMOTE_DATASETS/dataset_1/lerobot" \
-  "$REMOTE_MODELS/model_1" \
-  "" \
-  "save_steps=10000"
+# wait_for_job_server
+# run_finetune_remote "finetune_1" false 40000 \
+#   "$REMOTE_DATASETS/dataset_1/lerobot" \
+#   "$REMOTE_MODELS/model_1" \
+#   "" \
+#   "save_steps=10000"
 
 # --------------------------
 # Step 3: wait for datagen_2, copy dataset_2, start datagen_3
 # --------------------------
 
 wait_screen_gone "datagen_2"
-run_datagen "datagen_3" "$DATASETS_LOCAL/dataset_3"
+# run_datagen "datagen_3" "$DATASETS_LOCAL/dataset_3"
 rsync_to_remote "$DATASETS_LOCAL/dataset_2" "~/heizmany/datasets/dataset_2"
 
 # --------------------------
 # Step 4: wait for finetune_1, start finetune_2 (dataset_2, resume from model_2)
 # --------------------------
 
-wait_screen_gone_remote "finetune_1"
+# wait_screen_gone_remote "finetune_1"
 
 wait_for_job_server
-run_finetune_remote "finetune_2" false 80000 \
+run_finetune_remote "finetune_2" false 40000 \
   "$REMOTE_DATASETS/dataset_2/lerobot" \
   "$REMOTE_MODELS/model_2" \
   "" \
