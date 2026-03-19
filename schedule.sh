@@ -57,7 +57,8 @@ run_finetune_remote "finetune_2" false 40000 \
   "$REMOTE_DATASETS/dataset_2/lerobot" \
   "$REMOTE_MODELS/model_2" \
   "" \
-  "save_steps=10000"
+  "save_steps=10000" \
+  "1"
 
 # --------------------------
 # Step 5: wait for datagen_3

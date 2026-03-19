@@ -35,14 +35,16 @@ def _job_status(name: str) -> dict:
     return {"gone": False, "exit_code": None}
 
 
-def _launch(name: str, args: list[str], log: Path) -> None:
+def _launch(name: str, args: list[str], log: Path, env: dict | None = None) -> None:
     LOGS_DIR.mkdir(exist_ok=True)
     log_file = open(log, "w")
+    merged_env = {**os.environ, **(env or {})}
     proc = subprocess.Popen(
         [sys.executable, "-u", str(MAIN_IG)] + args,
         stdout=log_file,
         stderr=subprocess.STDOUT,
         preexec_fn=os.setsid,
+        env=merged_env,
     )
     _jobs[name] = proc
 
@@ -78,9 +80,10 @@ class _JobHandler(BaseHTTPRequestHandler):
             self._respond(409, {"status": "already_running", "name": name})
             return
         args = shlex.split(body["args_str"])
+        env: dict | None = body.get("env") or None
         log = LOGS_DIR / f"{name}_{_ts()}.log"
-        _launch(name, args, log)
-        print(f"[job_server] started '{name}' → {log}")
+        _launch(name, args, log, env=env)
+        print(f"[job_server] started '{name}' (env={env}) → {log}")
         self._respond(200, {"status": "started", "name": name, "log": str(log)})
 
     def _handle_kill_screen(self, body: dict) -> None:

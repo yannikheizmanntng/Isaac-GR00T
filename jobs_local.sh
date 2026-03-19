@@ -68,7 +68,7 @@ run_datagen () {
     python -u $MAIN_IL \
       --mode record_dataset \
       $wait_gone_arg \
-      --rec_args dataset_output_path=$output_path
+      --rec_args dataset_output_path=$output_path \
     2>&1 | tee '$log'
   "
 }

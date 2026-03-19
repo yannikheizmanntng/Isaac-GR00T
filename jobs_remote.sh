@@ -21,11 +21,14 @@ wait_for_job_server () {
 _remote_run () {
   local name="$1"
   local args_str="$2"
+  local cuda_device="${3-}"
+  local env_json="null"
+  [[ -n "$cuda_device" ]] && env_json="{\"CUDA_VISIBLE_DEVICES\":\"$cuda_device\"}"
   local response http_code
   while true; do
     response=$(curl -s -o /tmp/_remote_run_body -w "%{http_code}" -X POST "$REMOTE_JOB_SERVER/run" \
       -H "Content-Type: application/json" \
-      -d "{\"name\":\"$name\",\"args_str\":\"$args_str\"}" 2>&1)
+      -d "{\"name\":\"$name\",\"args_str\":\"$args_str\",\"env\":$env_json}" 2>&1)
     http_code="$response"
     response=$(cat /tmp/_remote_run_body)
     if [[ "$http_code" == "200" || "$http_code" == "409" ]]; then
@@ -46,6 +49,7 @@ run_finetune_remote () {
   local resume_from="${5-}"
   local output_name="${6-}"
   local training_args_extra="${7-}"
+  local cuda_device="${8-}"
 
   local model_args="tune_visual=$tune_visual"
   [[ -n "$resume_from" ]] && model_args+=" resume_from=$resume_from"
@@ -60,9 +64,10 @@ run_finetune_remote () {
     dataset_args_items+="dataset_path=${p} "
   done
 
-  echo "[scheduler] launching ${name} on remote"
+  echo "[scheduler] launching ${name} on remote (cuda_device=${cuda_device:-any})"
   _remote_run "$name" \
-    "--mode run_finetune --model_args $model_args --training_args $training_args --dataset_args $dataset_args_items"
+    "--mode run_finetune --model_args $model_args --training_args $training_args --dataset_args $dataset_args_items" \
+    "$cuda_device"
 }
 
 
