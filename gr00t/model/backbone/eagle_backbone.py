@@ -112,6 +112,34 @@ class EagleBackbone(nn.Module):
         eagle_features = self.eagle_linear(eagle_features)
         return eagle_features, eagle_input["attention_mask"]
 
+    def forward_for_attribution(
+        self, vl_input: BatchFeature
+    ) -> tuple[BatchFeature, torch.Tensor | None]:
+        """
+        Like forward() but captures a gradient leaf at the LLM input boundary.
+        Registers a pre-hook on layers[0] that detaches hidden_states, creates a
+        requires_grad leaf, and routes the LLM forward through it.  Vision encoder
+        and embedding lookup run before the hook and are not in the gradient graph.
+        Returns (backbone_output, eagle_input_leaf [B, L, D]).
+        """
+        leaf_holder: dict = {}
+
+        def _hook(module, args):
+            h = args[0]
+            leaf = h.detach().requires_grad_(True)
+            leaf.retain_grad()
+            leaf_holder["leaf"] = leaf
+            return (leaf,) + args[1:]
+
+        first_layer = self.eagle_model.language_model.model.layers[0]
+        handle = first_layer.register_forward_pre_hook(_hook)
+        try:
+            backbone_output = self.forward(vl_input)
+        finally:
+            handle.remove()
+
+        return backbone_output, leaf_holder.get("leaf")
+
     def forward(self, vl_input: BatchFeature) -> BatchFeature:
         self.set_frozen_modules_to_eval_mode()
 

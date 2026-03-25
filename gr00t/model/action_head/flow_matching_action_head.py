@@ -404,6 +404,67 @@ class FlowmatchingActionHead(nn.Module):
             actions = actions + dt * pred_velocity
         return BatchFeature(data={"action_pred": actions})
 
+    def get_action_with_explain(
+        self,
+        backbone_output: BatchFeature,
+        action_input: BatchFeature,
+        store: "AttentionStore",
+    ) -> tuple[BatchFeature, "AttentionStore"]:
+        """
+        Gradient-enabled denoising loop for Chefer attribution.
+        Callers must install CaptureAttnProcessor on self.model beforehand.
+        @torch.no_grad() intentionally absent — gradients required.
+        """
+        backbone_output = self.process_backbone_output(backbone_output)
+        vl_embs = backbone_output.backbone_features
+        embodiment_id = action_input.embodiment_id
+
+        # Float32 leaf tensor so grad flows back to raw state dims regardless of autocast dtype.
+        state_input = action_input.state.float().detach().requires_grad_(True)
+        state_features = self.state_encoder(state_input, embodiment_id)
+
+        batch_size = vl_embs.shape[0]
+        device = vl_embs.device
+        actions = torch.randn(
+            size=(batch_size, self.config.action_horizon, self.config.action_dim),
+            dtype=vl_embs.dtype,
+            device=device,
+        )
+
+        num_steps = self.num_inference_timesteps
+        dt = 1.0 / num_steps
+
+        for t in range(num_steps):
+            store.set_step(t)
+            t_cont = t / float(num_steps)
+            t_discretized = int(t_cont * self.num_timestep_buckets)
+            timesteps_tensor = torch.full((batch_size,), fill_value=t_discretized, device=device)
+            action_features = self.action_encoder(actions, timesteps_tensor, embodiment_id)
+            if self.config.add_pos_embed:
+                pos_ids = torch.arange(action_features.shape[1], dtype=torch.long, device=device)
+                action_features = action_features + self.position_embedding(pos_ids).unsqueeze(0)
+            future_tokens = self.future_tokens.weight.unsqueeze(0).expand(vl_embs.shape[0], -1, -1)
+            sa_embs = torch.cat((state_features, future_tokens, action_features), dim=1)
+            model_output = self.model(
+                hidden_states=sa_embs,
+                encoder_hidden_states=vl_embs,
+                timestep=timesteps_tensor,
+            )
+            pred = self.action_decoder(model_output, embodiment_id)
+            actions = actions + dt * pred[:, -self.action_horizon:]
+
+        s = actions[:, 0, :].sum()
+        s.backward()
+
+        # Per-dim attribution: ReLU(grad * input) consistent with Chefer's grad-weighting.
+        # Shape [B, T_obs, max_state_dim]; caller slices to actual joint count.
+        state_attribution = (state_input.grad * state_input).clamp(min=0).detach()
+
+        return BatchFeature(data={
+            "action_pred": actions.detach(),
+            "state_attribution": state_attribution,
+        }), store
+
     @property
     def device(self):
         return next(iter(self.parameters())).device

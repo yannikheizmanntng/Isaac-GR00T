@@ -291,6 +291,97 @@ class Gr00tPolicy(BasePolicy):
     def _get_unnormalized_action(self, normalized_action: torch.Tensor) -> Dict[str, Any]:
         return self.unapply_transforms({"action": normalized_action.cpu()})
 
+    def explain_action(
+        self,
+        observations: Dict[str, Any],
+        capture_steps: list[int],
+    ) -> Dict[str, Any]:
+        """
+        Returns:
+            action_pred     np.ndarray [H, D]
+            store           AttentionStore (populated .grad on captured probs)
+            backbone_inputs BatchFeature (contains eagle_input_ids for token mapping)
+            n_sa            int (total SA token count in DiT query stream)
+            action0_idx     int (index of first action token in SA sequence)
+        """
+        from transformers.feature_extraction_utils import BatchFeature
+        from gr00t.explain._attention_store import AttentionStore
+        from gr00t.explain._attn_processor import install_attn_processors, restore_attn_processors
+
+        obs_copy = observations.copy()
+        if not self._check_state_is_batched(obs_copy):
+            obs_copy = unsqueeze_dict_values(obs_copy)
+        for k, v in obs_copy.items():
+            if not isinstance(v, np.ndarray):
+                obs_copy[k] = np.array(v)
+        normalized_input = self.apply_transforms(obs_copy)
+
+        with torch.no_grad():
+            backbone_inputs, action_inputs = self.model.prepare_input(normalized_input)
+
+        # Phase 1: EAGLE forward with hook — builds graph from leaf → LLM → eagle_linear.
+        # Vision encoder runs inside self.forward() but before the hook, so it is not in
+        # the gradient graph (the hook detaches hidden_states and creates a fresh leaf).
+        with torch.autocast(device_type="cuda", dtype=COMPUTE_DTYPE):
+            backbone_output, eagle_input_leaf = self.model.backbone.forward_for_attribution(
+                backbone_inputs
+            )
+
+        # Phase 2: Detach VL features so DiT and EAGLE graphs are never simultaneously in memory.
+        vl_for_dit = backbone_output["backbone_features"].detach().requires_grad_(True)
+        backbone_output_for_dit = BatchFeature(data={
+            "backbone_features": vl_for_dit,
+            "backbone_attention_mask": backbone_output["backbone_attention_mask"],
+        })
+
+        # Phase 3: DiT forward + backward (s.backward() inside get_action_with_explain).
+        store = AttentionStore(capture_steps=capture_steps)
+        restore_map = install_attn_processors(self.model.action_head.model, store)
+        try:
+            with torch.autocast(device_type="cuda", dtype=COMPUTE_DTYPE):
+                action_output, store = self.model.action_head.get_action_with_explain(
+                    backbone_output_for_dit, action_inputs, store
+                )
+        finally:
+            restore_attn_processors(self.model.action_head.model, restore_map)
+
+        # Phase 4: EAGLE backward — propagate DiT gradient through LLM layers to leaf.
+        if eagle_input_leaf is not None and vl_for_dit.grad is not None:
+            backbone_output["backbone_features"].backward(gradient=vl_for_dit.grad)
+            eagle_input_leaf_np = eagle_input_leaf.detach().cpu().float().numpy()
+            eagle_input_grad_np = (
+                eagle_input_leaf.grad.detach().cpu().float().numpy()
+                if eagle_input_leaf.grad is not None
+                else None
+            )
+        else:
+            eagle_input_leaf_np = None
+            eagle_input_grad_np = None
+
+        with torch.no_grad():
+            _state_f = self.model.action_head.state_encoder(
+                action_inputs.state, action_inputs.embodiment_id
+            )
+        n_state = _state_f.shape[1]
+        n_future = self.model.action_head.config.num_target_vision_tokens
+        action0_idx = n_state + n_future
+
+        # state_attribution [B, T_obs, max_state_dim] → average over T_obs, squeeze batch
+        state_attr = action_output["state_attribution"]   # [B, T_obs, D]
+        state_attribution_np = state_attr.squeeze(0).mean(0).cpu().numpy()  # [max_state_dim]
+
+        return {
+            "action_pred": action_output["action_pred"].squeeze(0).cpu().numpy(),
+            "store": store,
+            "backbone_inputs": backbone_inputs,
+            "n_sa": n_state + n_future + self.model.action_head.config.action_horizon,
+            "action0_idx": action0_idx,
+            "n_state_tokens": n_state,
+            "state_attribution": state_attribution_np,
+            "eagle_input_leaf": eagle_input_leaf_np,   # [B, L, D] np.float32 or None
+            "eagle_input_grad": eagle_input_grad_np,   # [B, L, D] np.float32 or None
+        }
+
     def get_modality_config(self) -> Dict[str, ModalityConfig]:
         """
         Get the modality config for the model, overrides the base class method
