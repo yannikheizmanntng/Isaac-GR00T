@@ -5,70 +5,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/jobs_local.sh"
 source "$SCRIPT_DIR/jobs_remote.sh"
 
-mkdir -p "$IG_LOGS"
 
-# --------------------------
-# Paths
-# --------------------------
+#run_datagen "datagen" "/home/innovation-hacking/heizmany/ur5_chess/datasets/eval_a_2" "/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/evaluation/benchmarks/eval/experiments/experiment_2/eval_a_exp_2.yaml" 
+#run_datagen "datagen2" "/home/innovation-hacking/heizmany/ur5_chess/datasets/eval_b_2" "/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/evaluation/benchmarks/eval/experiments/experiment_2/eval_b_exp_2.yaml" "datagen"
+run_datagen "datagen3" "/home/innovation-hacking/heizmany/ur5_chess/datasets/eval_d_2" "/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/evaluation/benchmarks/eval/experiments/experiment_2/eval_d_exp_2.yaml" "datagen2"
+#run_datagen "datagen4" "/home/innovation-hacking/heizmany/ur5_chess/datasets/eval_c_2" "/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/evaluation/benchmarks/eval/experiments/experiment_2/eval_c_exp_2.yaml" 
 
-DATASETS_LOCAL="/home/innovation-hacking/heizmany/ur5_chess/datasets"
-
-# --------------------------
-# Pre-launch datagen_2 immediately — waits internally for datagen to disappear.
-# --------------------------
-
-run_datagen "datagen_2" "$DATASETS_LOCAL/dataset_2" "datagen"
-
-# --------------------------
-# Step 1: wait for datagen_1, then copy dataset_1 to remote
-# --------------------------
-
-wait_screen_gone "datagen"
-
-#rsync_to_remote "$DATASETS_LOCAL/dataset_1" "~/heizmany/datasets/dataset_1"
-
-# --------------------------
-# Step 2: start finetune_1 (dataset_1, resume from model_1)
-# --------------------------
-
-# wait_for_job_server
-# run_finetune_remote "finetune_1" false 40000 \
-#   "$REMOTE_DATASETS/dataset_1/lerobot" \
-#   "$REMOTE_MODELS/model_1" \
-#   "" \
-#   "save_steps=10000"
-
-# --------------------------
-# Step 3: wait for datagen_2, copy dataset_2, start datagen_3
-# --------------------------
-
-wait_screen_gone "datagen_2"
-# run_datagen "datagen_3" "$DATASETS_LOCAL/dataset_3"
-rsync_to_remote "$DATASETS_LOCAL/dataset_2" "~/heizmany/datasets/dataset_2"
-
-# --------------------------
-# Step 4: wait for finetune_1, start finetune_2 (dataset_2, resume from model_2)
-# --------------------------
-
-# wait_screen_gone_remote "finetune_1"
-
-wait_for_job_server
-run_finetune_remote "finetune_2" false 40000 \
-  "$REMOTE_DATASETS/dataset_2/lerobot" \
-  "$REMOTE_MODELS/model_2" \
-  "" \
-  "save_steps=10000" \
-  "1"
-
-# --------------------------
-# Step 5: wait for datagen_3
-# --------------------------
-
-wait_screen_gone "datagen_3"
-
-echo "[scheduler] all runs complete."
-
+wait_screen_gone "datagen3"
 
 # screen -S scheduler bash -lc "./schedule.sh 2>&1 | tee logs/scheduler.log"
-
-# curl http://localhost:8765/jobs

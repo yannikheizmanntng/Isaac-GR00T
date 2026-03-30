@@ -29,7 +29,7 @@ Chefer et al. argue that **raw attention maps are not faithful explanations** be
 
 PyTorch implements reverse-mode autograd and computes gradients of scalar-valued functions efficiently; for non-scalar outputs, `grad_outputs` specifies the "vector" in the vector–Jacobian product (VJP).
 
-Let `y0 = y_pred[:,0,:]` (shape `[B, D]`).  The L2-squared scalar objective `s = ||y0||_2^2` has VJP vector `v = ∂s/∂y0 = 2*y0` — big-magnitude joints get bigger gradient weight.  The implementation uses `s = actions[:,0,:].sum()` instead, giving equal gradient weight `1.0` to all joint dimensions.  Both are valid for relative importance; the `.sum()` variant is simpler.
+The scalar objective aggregates over the full executed action chunk (h_e = 8 steps, matching the receding-horizon execution window): `s = actions[:, :8, :].sum()`.  This gives equal gradient weight `1.0` to all joint dimensions and all executed steps, attributing relevance to the complete behavior that actually gets applied to the environment rather than to a single initial step.  An L2-squared objective would bias gradients toward high-magnitude joints; a single-step objective would bias toward initial approach motion.
 
 ### Why `retain_grad()` is required
 

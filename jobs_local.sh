@@ -51,7 +51,8 @@ run_finetune () {
 run_datagen () {
   local name="$1"
   local output_path="$2"
-  local wait_for_gone="${3-}"
+  local cfg_path="$3"
+  local wait_for_gone="${4-}"
 
   local log="$IG_LOGS/${name}_$(ts).log"
   local venv_activate="/home/innovation-hacking/heizmany/ur5_chess/.venv/bin/activate"
@@ -68,6 +69,7 @@ run_datagen () {
     python -u $MAIN_IL \
       --mode record_dataset \
       $wait_gone_arg \
+      --sim_args dataset_cfg_yaml=$cfg_path\
       --rec_args dataset_output_path=$output_path \
     2>&1 | tee '$log'
   "

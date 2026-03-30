@@ -453,7 +453,8 @@ class FlowmatchingActionHead(nn.Module):
             pred = self.action_decoder(model_output, embodiment_id)
             actions = actions + dt * pred[:, -self.action_horizon:]
 
-        s = actions[:, 0, :].sum()
+        exec_horizon = 8  # matches the receding-horizon execution window h_e
+        s = actions[:, :exec_horizon, :].sum()
         s.backward()
 
         # Per-dim attribution: ReLU(grad * input) consistent with Chefer's grad-weighting.
