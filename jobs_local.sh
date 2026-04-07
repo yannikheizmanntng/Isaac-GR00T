@@ -6,8 +6,10 @@ MAIN_IG="/home/innovation-hacking/heizmany/Isaac-GR00T/extension/main.py"
 
 PY_IL="/home/innovation-hacking/heizmany/ur5_chess/.venv/bin/python"
 MAIN_IL="/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/main.py"
+MAIN_OFFLINE="/home/innovation-hacking/heizmany/ur5_chess/source/ur5_chess/ur5_chess/evaluation/offline/main.py"
 
 IG_LOGS="/home/innovation-hacking/heizmany/Isaac-GR00T/logs"
+IL_LOGS="/home/innovation-hacking/heizmany/ur5_chess/logs"
 
 ts () { date +"%Y%m%d-%H%M%S"; }
 
@@ -119,11 +121,11 @@ run_benchmark () {
       --mode run_benchmark \
       $wait_arg \
       $wait_gone_arg \
-      --benchmark_args benchmark=$benchmark model_path=$model_path experiment_path=$experiment_path \
-      --inference_args host=$REMOTE_INFERENCE_HOST \
+      --benchmark_args benchmark=$benchmark model_path=$model_path experiment_path=$experiment_path 
     2>&1 | tee '$log'
   "
 }
+
 
 
 wait_screen_gone () {
